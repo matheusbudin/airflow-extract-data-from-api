@@ -4,3 +4,4 @@ astronomer-providers==1.11.2
 psycopg2-binary
 requests
 pandas
+apache-airflow-providers-postgres

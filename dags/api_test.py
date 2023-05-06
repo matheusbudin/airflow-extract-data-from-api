@@ -13,7 +13,7 @@ from airflow.hooks.postgres_hook import PostgresHook
 #definitions
 MY_NAME = "Matheus"
 number_of_rows = 1000
-postgres_conn_id = "postgres_default"
+postgres_conn_id = "postgres"
 
 #python function, api data retrieve
 #it is good practice to separate functions by functionality, each function should do only one thing
@@ -58,11 +58,11 @@ def store_in_postgres():
   hook = PostgresHook(postgres_conn_id = postgres_conn_id)
   conn = hook.get_conn()
   cursor = conn.cursor()
-  cursor.execute("CREATE TABLE IF NOT EXISTIS my_table (Name varchar, Email varchar, IP varchar)")
+  cursor.execute("CREATE TABLE IF NOT EXISTS my_table (Name varchar, Email varchar, IP varchar)")
   conn.commit()
 
   #insert the dataframe into the table
-  df_api.to_sql('my_table', hook.get_sqlalchemy_engine(), if_exists='append', index=False)
+  #df_api.to_sql('my_table', hook.get_sqlalchemy_engine(), if_exists='append', index=False)
 
 
 with DAG(
