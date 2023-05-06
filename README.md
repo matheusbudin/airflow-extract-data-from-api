@@ -1,3 +1,6 @@
+This project returns data from faker API, to make it work in your machine, please follow the official documentation below
+
+
 Overview
 ========
 
