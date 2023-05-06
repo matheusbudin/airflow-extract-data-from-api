@@ -46,6 +46,11 @@ def data_from_api(number_of_rows: int):
   #sorting as a .parquet (to save space -> optimal in cloud storage, save resources)
   #df_api.to_parquet('./my_api_data.parquet', index=False)
 
+  # Use Pandas to write the DataFrame to a CSV file
+  csv_path = './my_file.csv'
+  df_api = pd.DataFrame(transformed_data)
+  df_api.to_csv(csv_path, index=False)
+
   return transformed_data
 
 #next step is save those data frames into postgres
@@ -107,6 +112,8 @@ with DAG(
     
     '''
   )
+
+  
 #set dependencies
 t1>>create_table_task
 
