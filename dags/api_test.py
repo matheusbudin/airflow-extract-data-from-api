@@ -34,8 +34,20 @@ def data_from_api(number_of_rows: int):
         'IP': record['ip']
     }
     transformed_data.append(transformed_record)
+
+  df_api = pd.DataFrame(transformed_data)
+  # #saving it as a local file:
+  #storing as a csv file (to load inside a db for example or AWS S3)
+  df_api.to_csv('./my_api_data.csv', index=False, mode='w+')
+  #sorting as a .parquet (to save space -> optimal in cloud storage, save resources)
+  df_api.to_parquet('./my_api_data.parquet', index=False)
+
+  
   
   return transformed_data[0:4]
+
+#next step is save those data frames into postgres
+
 
 def transform_json(data: json):
   #creates empty list to store transformated data
