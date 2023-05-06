@@ -15,6 +15,7 @@ from airflow.operators.postgres_operator import PostgresOperator
 MY_NAME = "Matheus"
 number_of_rows = 1000
 postgres_conn_id = "postgres"
+csv_path = './my_file.csv'
 
 #python function, api data retrieve
 #it is good practice to separate functions by functionality, each function should do only one thing
@@ -51,7 +52,7 @@ def data_from_api(number_of_rows: int):
   df_api = pd.DataFrame(transformed_data)
   df_api.to_csv(csv_path, index=False)
 
-  return transformed_data
+  return df_api
 
 #next step is save those data frames into postgres
 
@@ -72,6 +73,7 @@ def store_in_postgres():
   #df_api.to_sql('my_table', con=postgres_conn_id, if_exists='replace', index=False)
 
 #create a postgresOperator task to execute a SQL statement to create a table
+
 
 
 
@@ -113,11 +115,20 @@ with DAG(
     '''
   )
 
-  
+  load_data_postgres = PostgresOperator(
+    task_id = 'load_data',
+    postgres_conn_id = 'postgres',
+    sql = f'''
+      COPY my_table
+      FROM '{csv_path}'
+      DELIMITER ',' CSV HEADER
+    
+    ''',
+  )
 #set dependencies
-t1>>create_table_task
+t1>>create_table_task>>load_data_postgres
 
 
 #to do:
-# need to figure out the postgres conection
-# error: port 5432 failed: Cannot assign requested address Is the server running on that host and accepting TCP/IP connections?
+# figure out how to load data into psotgres, from a dataframe;
+#or just simple extract dataframe to S3, using an operator from Astronomer Registry
