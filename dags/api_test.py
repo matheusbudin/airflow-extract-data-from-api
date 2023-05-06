@@ -1,16 +1,19 @@
 #imports
-from airflow import DAG
-from airflow.operators.python import PythonOperator
-from airflow.operators.bash import BashOperator
-from datetime import datetime, timedelta
 import os
 import requests
 import pandas as pd
 import json
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+from airflow.operators.bash import BashOperator
+from datetime import datetime, timedelta
+from airflow.hooks.postgres_hook import PostgresHook
+
 
 #definitions
 MY_NAME = "Matheus"
 number_of_rows = 1000
+postgres_conn_id = "postgres_default"
 
 #python function, api data retrieve
 #it is good practice to separate functions by functionality, each function should do only one thing
@@ -35,43 +38,37 @@ def data_from_api(number_of_rows: int):
     }
     transformed_data.append(transformed_record)
 
-  df_api = pd.DataFrame(transformed_data)
+  #df_api = pd.DataFrame(transformed_data)
   # #saving it as a local file:
   #storing as a csv file (to load inside a db for example or AWS S3)
-  df_api.to_csv('./my_api_data.csv', index=False, mode='w+')
+  #df_api.to_csv('./my_api_data.csv', index=False, mode='w+')
   #sorting as a .parquet (to save space -> optimal in cloud storage, save resources)
-  df_api.to_parquet('./my_api_data.parquet', index=False)
+  #df_api.to_parquet('./my_api_data.parquet', index=False)
 
-  
-  
-  return transformed_data[0:4]
+  return transformed_data
 
 #next step is save those data frames into postgres
 
+def store_in_postgres():
+  #convert the data to a dataframe:
+  data = data_from_api(number_of_rows)
+  df_api = pd.DataFrame(data)
 
-def transform_json(data: json):
-  #creates empty list to store transformated data
-  transformed_data = []
+  #connect to Postgres and create a table
+  hook = PostgresHook(postgres_conn_id = postgres_conn_id)
+  conn = hook.get_conn()
+  cursor = conn.cursor()
+  cursor.execute("CREATE TABLE IF NOT EXISTIS my_table (Name varchar, Email varchar, IP varchar)")
+  conn.commit()
 
-  #loop throught each record from json file and extract desired fields:
-  for record in data['data']:
-    transformed_record = {
-        'Name': record['firstname'] + ' ' + record['lastname'],
-        'Email': record['email'],
-        'IP': record['ip']
-    }
-    transformed_data.append(transformed_record)
-  return transformed_data
-
-
-
-
+  #insert the dataframe into the table
+  df_api.to_sql('my_table', hook.get_sqlalchemy_engine(), if_exists='append', index=False)
 
 
 with DAG(
     dag_id = 'extract_api_data',
     start_date=datetime(2023,5,6),
-    schedule=timedelta(minutes=30),
+    schedule=None, #timedelta(minutes=30),
     catchup=False,
     tags=["personal-project"],
     default_args={
@@ -86,6 +83,14 @@ with DAG(
           python_callable=data_from_api,
           op_kwargs = {"number_of_rows": number_of_rows},
       ) 
-  
+  t2 = PythonOperator(
+    task_id='store_data_in_postgres',
+    python_callable=store_in_postgres,
+  )
 #set dependencies
-#t1>>t2
+t1>>t2
+
+
+#to do:
+# need to figure out the postgres conection
+# error: port 5432 failed: Cannot assign requested address Is the server running on that host and accepting TCP/IP connections?
