@@ -23,9 +23,21 @@ def data_from_api(number_of_rows: int):
   
   #convert the extraction file to json format:
   data = response.json()
-  return data
+  
+  transformed_data = []
 
-def transform_dataframe(data: json):
+  #loop throught each record from json file and extract desired fields:
+  for record in data['data']:
+    transformed_record = {
+        'Name': record['firstname'] + ' ' + record['lastname'],
+        'Email': record['email'],
+        'IP': record['ip']
+    }
+    transformed_data.append(transformed_record)
+  
+  return transformed_data[0:4]
+
+def transform_json(data: json):
   #creates empty list to store transformated data
   transformed_data = []
 
@@ -38,6 +50,8 @@ def transform_dataframe(data: json):
     }
     transformed_data.append(transformed_record)
   return transformed_data
+
+
 
 
 
@@ -59,12 +73,7 @@ with DAG(
           task_id = "returns-data-from-an-API",
           python_callable=data_from_api,
           op_kwargs = {"number_of_rows": number_of_rows},
-      )
-  t2 = PythonOperator(
-          task_id = "process-data-into-dataframe",
-          python_callable=data_from_api,
-          op_kwargs = {"number_of_rows": number_of_rows,"data": t1},
-      )
+      ) 
   
 #set dependencies
-t1>>t2
+#t1>>t2
