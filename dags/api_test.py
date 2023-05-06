@@ -8,6 +8,7 @@ from airflow.operators.python import PythonOperator
 from airflow.operators.bash import BashOperator
 from datetime import datetime, timedelta
 from airflow.hooks.postgres_hook import PostgresHook
+from airflow.operators.postgres_operator import PostgresOperator
 
 
 #definitions
@@ -58,11 +59,16 @@ def store_in_postgres():
   hook = PostgresHook(postgres_conn_id = postgres_conn_id)
   conn = hook.get_conn()
   cursor = conn.cursor()
-  cursor.execute("CREATE TABLE IF NOT EXISTS my_table (Name varchar, Email varchar, IP varchar)")
+  cursor.execute(sql="CREATE TABLE IF NOT EXISTS my_table (Name varchar, Email varchar, IP varchar)")
   conn.commit()
 
   #insert the dataframe into the table
   #df_api.to_sql('my_table', hook.get_sqlalchemy_engine(), if_exists='append', index=False)
+  #df_api.to_sql('my_table', con=postgres_conn_id, if_exists='replace', index=False)
+
+#create a postgresOperator task to execute a SQL statement to create a table
+
+
 
 
 with DAG(
@@ -83,12 +89,26 @@ with DAG(
           python_callable=data_from_api,
           op_kwargs = {"number_of_rows": number_of_rows},
       ) 
-  t2 = PythonOperator(
-    task_id='store_data_in_postgres',
-    python_callable=store_in_postgres,
+  # t2 = PythonOperator(
+  #   task_id='store_data_in_postgres',
+  #   python_callable=store_in_postgres,
+  # )
+  
+  create_table_task = PostgresOperator(
+    task_id='create-table',
+    postgres_conn_id='postgres',
+    sql='''
+        CREATE TABLE IF NOT EXISTS my_table (
+        
+            Name varchar(60),
+            Email varchar(30),
+            IP varchar(20)
+        )
+    
+    '''
   )
 #set dependencies
-t1>>t2
+t1>>create_table_task
 
 
 #to do:
